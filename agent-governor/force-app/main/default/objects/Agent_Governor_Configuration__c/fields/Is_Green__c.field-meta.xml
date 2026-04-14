@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Green__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>System flag indicating if the quota is open or exhausted. Logic Engine updates this.</description>
+    <inlineHelpText>System Flag. Checked = Agent is Available. Unchecked = Daily Limit has been reached or manually overridden.</inlineHelpText>
+    <label>Is Green</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Governor_Key__c</fullName>
+    <caseSensitive>false</caseSensitive>
+    <description>Unique External ID used to map the public website script to this specific Salesforce record.</description>
+    <externalId>true</externalId>
+    <inlineHelpText>Enter a unique string (e.g., service-v1). This must match the GOVERNOR_KEY constant defined in your website JavaScript wrapper.</inlineHelpText>
+    <label>Governor Key</label>
+    <length>50</length>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Current_Count__c</fullName>
+    <description>System field tracked by the Trigger. Increments on new MessagingSessions.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>(System Field) The number of conversations started today. This resets automatically at midnight based on the Time Zone.</inlineHelpText>
+    <label>Current Count</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

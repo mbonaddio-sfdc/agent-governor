@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Reset_Date__c</fullName>
+    <description>Tracks the last date the counter was zeroed out to prevent double-resets.</description>
+    <inlineHelpText>(System Field) The date the Daily Limit was last reset. Used by the logic engine to detect a new day.</inlineHelpText>
+    <label>Reset Date</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Date</type>
+</CustomField>

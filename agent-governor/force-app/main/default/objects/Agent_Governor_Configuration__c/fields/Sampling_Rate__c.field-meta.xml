@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sampling_Rate__c</fullName>
+    <description>The percentage of website visitors who will pass the client-side funnel check.</description>
+    <inlineHelpText>The percentage of visitors to show the Agent to (0.00% - 100.00%). For example, enter 5 for 5%. Lower this value to reduce traffic load.</inlineHelpText>
+    <label>Sampling Rate</label>
+    <precision>7</precision>
+    <required>false</required>
+    <scale>4</scale>
+    <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Percent</type>
+</CustomField>

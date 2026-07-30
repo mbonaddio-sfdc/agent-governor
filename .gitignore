@@ -55,3 +55,6 @@ $RECYCLE.BIN/
 
 # Editor noise
 *.swp
+
+# Internal working docs (kept locally, not published to the repo)
+HARDENING_PLAN.md

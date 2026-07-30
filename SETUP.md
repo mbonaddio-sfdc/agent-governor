@@ -126,8 +126,8 @@ claude
 On first launch it will guide you through signing in (with your Claude account or an API
 key). After that, you just type what you want. For example:
 
-> "Retrieve the ContentAsset called MB_Agent_Ramp_for_Agentforce from the governor-prod
-> org and save it into the repo, then show me what changed."
+> "Deploy the contentassets folder and the Agent_Governor application to governor-prod,
+> then show me what changed."
 
 ---
 
@@ -135,9 +135,12 @@ key). After that, you just type what you want. For example:
 
 These are the immediate items we identified. You can paste them almost verbatim.
 
-1. **Fix the missing app logo (the deploy blocker).**
-   > "Retrieve `ContentAsset:MB_Agent_Ramp_for_Agentforce` from the governor-prod org into
-   > `force-app/main/default/contentassets/`, then stop so I can commit it in GitHub Desktop."
+1. **Deploy the renamed app logo.**
+   The logo ContentAsset now lives in the repo as `Agent_Governor_Logo` (it was renamed
+   from the old `MB_`-prefixed name). Deploy it so the org matches:
+   > "Deploy `force-app/main/default/contentassets` and
+   > `force-app/main/default/applications/Agent_Governor.app-meta.xml` to governor-prod,
+   > then delete the old `ContentAsset:MB_Agent_Ramp_for_Agentforce` from the org."
 
 2. **Confirm the repo is in sync with the org.**
    > "Retrieve everything in `manifest/package.xml` from governor-prod and tell me if

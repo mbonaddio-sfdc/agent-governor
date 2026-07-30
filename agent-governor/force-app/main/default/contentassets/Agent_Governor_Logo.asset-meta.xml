@@ -2,7 +2,7 @@
 <ContentAsset xmlns="http://soap.sforce.com/2006/04/metadata">
     <isVisibleByExternalUsers>false</isVisibleByExternalUsers>
     <language>en_US</language>
-    <masterLabel>MB_Agent_Ramp_for_Agentforce</masterLabel>
+    <masterLabel>Agent_Governor_Logo</masterLabel>
     <relationships>
         <organization>
             <access>VIEWER</access>
@@ -11,7 +11,7 @@
     <versions>
         <version>
             <number>1</number>
-            <pathOnClient>[MB] Agent Ramp for Agentforce.png</pathOnClient>
+            <pathOnClient>Agent_Governor_Logo.png</pathOnClient>
         </version>
     </versions>
 </ContentAsset>

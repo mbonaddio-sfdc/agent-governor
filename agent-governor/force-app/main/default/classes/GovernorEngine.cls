@@ -1,5 +1,17 @@
 public without sharing class GovernorEngine {
-    
+
+    /**
+     * Returns "today's" date for the given IANA time zone (e.g. 'Australia/Sydney').
+     * Shared by the increment path (GovernorEngine) and the read path (AgentGovernorAPI)
+     * so both agree on when a new day has started. Falls back to server date if null.
+     */
+    public static Date getLocalToday(String tzId) {
+        if (tzId != null) {
+            return Date.valueOf(DateTime.now().format('yyyy-MM-dd', tzId));
+        }
+        return Date.today();
+    }
+
     @future
     public static void incrementAndEvaluate(Set<Id> channelIds) {
         List<Agent_Governor_Configuration__c> configsToUpdate = new List<Agent_Governor_Configuration__c>();
@@ -15,16 +27,7 @@ public without sharing class GovernorEngine {
         for (Agent_Governor_Configuration__c c : configs) {
             
             // 1. Calculate "Today" based on the Record's specific Time Zone
-            Date localToday;
-            
-            if (c.Time_Zone__c != null) {
-                // Force the date to match the configured IANA Time Zone (e.g., Australia/Sydney)
-                String dateString = DateTime.now().format('yyyy-MM-dd', c.Time_Zone__c);
-                localToday = Date.valueOf(dateString);
-            } else {
-                // Fallback to Server Date if no Time Zone is set
-                localToday = Date.today();
-            }
+            Date localToday = getLocalToday(c.Time_Zone__c);
 
             // 2. Auto-Reset Logic
             // If the last reset date is NOT the same as "Local Today", reset the counter.

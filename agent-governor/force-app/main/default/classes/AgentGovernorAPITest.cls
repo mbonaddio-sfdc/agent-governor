@@ -16,12 +16,27 @@ private class AgentGovernorAPITest {
             Exclude_Weekends__c = false
         );
         
-        // 2. Over Quota Config (Red)
+        // 2. Over Quota Config (Red) — quota exhausted TODAY.
+        // Reset_Date__c = today (no time zone -> server date) so the day-aware quota
+        // check treats this as a genuine same-day exhaustion and returns QUOTA.
         Agent_Governor_Configuration__c quotaConfig = new Agent_Governor_Configuration__c(
             Name = 'Over Quota Pilot',
             Governor_Key__c = 'quota-v1',
             Is_Active__c = true,
-            Is_Green__c = false // This will trigger the 'QUOTA' stop
+            Is_Green__c = false, // This will trigger the 'QUOTA' stop
+            Reset_Date__c = Date.today()
+        );
+
+        // 2b. Stale Quota Config (Red flag left over from YESTERDAY).
+        // Regression guard for the daily-reset deadlock: Is_Green is false but the flag
+        // was set on a previous day, so the API must ignore it and return GO.
+        Agent_Governor_Configuration__c staleQuotaConfig = new Agent_Governor_Configuration__c(
+            Name = 'Stale Quota Pilot',
+            Governor_Key__c = 'stale-quota-v1',
+            Is_Active__c = true,
+            Is_Green__c = false,
+            Sampling_Rate__c = 100,
+            Reset_Date__c = Date.today().addDays(-1)
         );
 
         // 3. Inactive Config
@@ -43,7 +58,7 @@ private class AgentGovernorAPITest {
             Exclude_Weekends__c = false
         );
 
-        insert new List<Agent_Governor_Configuration__c>{happyConfig, quotaConfig, inactiveConfig, timeConfig};
+        insert new List<Agent_Governor_Configuration__c>{happyConfig, quotaConfig, staleQuotaConfig, inactiveConfig, timeConfig};
     }
 
     // --- HELPER METHOD: Mocks the incoming HTTP Request ---
@@ -83,6 +98,22 @@ private class AgentGovernorAPITest {
         
         System.assertEquals('STOP', response.status, 'Status should be STOP');
         System.assertEquals('QUOTA', response.reason, 'Reason should be QUOTA');
+    }
+
+    // Regression guard for the daily-reset deadlock.
+    // A red Is_Green flag left over from a PREVIOUS day must NOT keep the agent hidden:
+    // the quota is fresh again today, so the API should return GO and let a new session
+    // start (which then self-heals the reset via the trigger).
+    @isTest
+    static void testStaleQuotaResetsNextDay() {
+        setupRestContext('stale-quota-v1');
+
+        Test.startTest();
+        AgentGovernorAPI.ResponseWrapper response = AgentGovernorAPI.checkStatus();
+        Test.stopTest();
+
+        System.assertEquals('GO', response.status, 'A quota flag set on a previous day must be ignored -> GO');
+        System.assertEquals('OK', response.reason, 'Reason should be OK once the stale quota is bypassed');
     }
 
     @isTest

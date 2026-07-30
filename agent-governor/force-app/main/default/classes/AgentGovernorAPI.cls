@@ -15,7 +15,7 @@ global without sharing class AgentGovernorAPI {
         // 1. Fetch Configuration
         List<Agent_Governor_Configuration__c> configs = [
             SELECT Is_Green__c, Is_Active__c, Sampling_Rate__c, Current_Count__c, Daily_Limit__c,
-                   Start_Hour__c, End_Hour__c, Time_Zone__c, Exclude_Weekends__c
+                   Start_Hour__c, End_Hour__c, Time_Zone__c, Exclude_Weekends__c, Reset_Date__c
             FROM Agent_Governor_Configuration__c 
             WHERE Governor_Key__c = :key LIMIT 1
         ];
@@ -28,11 +28,22 @@ global without sharing class AgentGovernorAPI {
         
         Agent_Governor_Configuration__c config = configs[0];
 
-        // 2. Hard Quota Check
+        // 2. Hard Quota Check (day-aware)
+        // Is_Green__c is flipped false by GovernorEngine when the daily cap is hit, but the
+        // reset-to-true only runs when a new MessagingSession fires the trigger. If we blindly
+        // trusted a stale false flag we would deadlock: agent hidden -> no session -> no reset
+        // -> agent stays hidden forever. So we only enforce QUOTA when the flag was set for
+        // TODAY. If Reset_Date__c is in the past (or null), the quota is stale from an earlier
+        // day: treat it as open and return GO. The first session that starts today then fires
+        // the trigger and GovernorEngine self-heals the reset.
         if (!config.Is_Green__c) {
-            resp.status = 'STOP'; 
-            resp.reason = 'QUOTA';
-            return resp;
+            Date localToday = GovernorEngine.getLocalToday(config.Time_Zone__c);
+            if (config.Reset_Date__c == localToday) {
+                resp.status = 'STOP';
+                resp.reason = 'QUOTA';
+                return resp;
+            }
+            // else: stale flag from a previous day -> quota is fresh, fall through to normal checks
         }
 
         // 3. Time & Logic Check

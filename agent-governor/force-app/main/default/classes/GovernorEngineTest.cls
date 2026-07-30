@@ -24,7 +24,10 @@ private class GovernorEngineTest {
             Current_Count__c = 4,
             Daily_Limit__c = 5,
             Is_Green__c = true,
-            Reset_Date__c = Date.today(),
+            // Stamp the reset date using the SAME timezone the engine will evaluate in,
+            // otherwise a server/NY date mismatch makes the engine think it's a new day
+            // and reset the count (time-of-day-dependent flake). See getLocalToday().
+            Reset_Date__c = GovernorEngine.getLocalToday('America/New_York'),
             Time_Zone__c = 'America/New_York'
         );
 
@@ -37,7 +40,9 @@ private class GovernorEngineTest {
             Current_Count__c = 50,
             Daily_Limit__c = 10,
             Is_Green__c = false, // Currently dead
-            Reset_Date__c = Date.today().addDays(-1), // Yesterday
+            // "Yesterday" relative to the config's own timezone (UTC), so the engine
+            // reliably sees a new day and resets — regardless of the org user's timezone.
+            Reset_Date__c = GovernorEngine.getLocalToday('UTC').addDays(-1),
             Time_Zone__c = 'UTC'
         );
 
@@ -49,7 +54,8 @@ private class GovernorEngineTest {
             Current_Count__c = 1,
             Daily_Limit__c = 10,
             Is_Green__c = true,
-            Reset_Date__c = Date.today()
+            // No timezone -> engine falls back to the org date; match it via the helper.
+            Reset_Date__c = GovernorEngine.getLocalToday(null)
             // Time_Zone__c deliberately left null
         );
 

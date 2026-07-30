@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sampling_Rate_In_Range</fullName>
+    <active>true</active>
+    <description>Sampling Rate is a percentage of visitors, so it must be between 0 and 100. Catches a fat-fingered value like 500 or -10 that would otherwise reach the wrapper as a nonsensical probability. Blank is allowed and means 100%.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Sampling_Rate__c)),
+  OR(
+    Sampling_Rate__c &lt; 0,
+    Sampling_Rate__c &gt; 100
+  )
+)</errorConditionFormula>
+    <errorDisplayField>Sampling_Rate__c</errorDisplayField>
+    <errorMessage>Sampling Rate must be between 0 and 100 (it is a percentage of visitors). Leave it blank to show the agent to 100% of visitors.</errorMessage>
+</ValidationRule>

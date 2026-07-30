@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Time_Zone_Required_With_Schedule</fullName>
+    <active>true</active>
+    <description>Operating hours and weekend exclusion are evaluated in the record's Time Zone; without one the API skips them, so a schedule with no zone silently does nothing. Requires a Time Zone when hours are set or Exclude Weekends is on.</description>
+    <errorConditionFormula>AND(
+  ISPICKVAL(Time_Zone__c, ""),
+  OR(
+    NOT(ISBLANK(Start_Hour__c)),
+    NOT(ISBLANK(End_Hour__c)),
+    Exclude_Weekends__c
+  )
+)</errorConditionFormula>
+    <errorDisplayField>Time_Zone__c</errorDisplayField>
+    <errorMessage>Select a Time Zone when you set operating hours or exclude weekends. The schedule is evaluated in that zone, and without it the schedule has no effect.</errorMessage>
+</ValidationRule>

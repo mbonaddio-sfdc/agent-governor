@@ -145,6 +145,7 @@
     </actionOverrides>
     <allowInChatterGroups>false</allowInChatterGroups>
     <compactLayoutAssignment>Highlights_Panel</compactLayoutAssignment>
+    <description>Stores the configuration and live counters for one governed Agentforce (Messaging for In-App and Web) deployment. Each record maps a website wrapper script (via its Governor Key) to a set of exposure controls the Agent Governor API evaluates on every request: impression sampling, a daily conversation limit, operating hours/weekend rules, and a master on/off switch. The system-managed fields (Current Count, Is Green, Reset Date) are maintained automatically by the MessagingSession trigger and the rules engine; do not edit them by hand.</description>
     <deploymentStatus>Deployed</deploymentStatus>
     <enableActivities>false</enableActivities>
     <enableBulkApi>false</enableBulkApi>

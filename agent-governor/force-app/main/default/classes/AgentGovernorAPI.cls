@@ -81,6 +81,10 @@ global without sharing class AgentGovernorAPI {
         // window (one bound blank) is treated as "hours not configured" -> always open,
         // rather than silently applying a partial rule. Guarding explicitly here so the
         // behaviour is intentional, not a side effect of `hour < null` being false.
+        // Same-day window only (e.g. 9 -> 17): open when start <= hour < end. Windows that
+        // wrap past midnight are intentionally not supported — the Operating_Hours_Valid
+        // validation rule enforces End Hour > Start Hour, which removes the ambiguity between
+        // a genuine overnight window and a transposed pair (e.g. 17 -> 9).
         if (config.Start_Hour__c != null && config.End_Hour__c != null) {
             // format('H', tzId) returns 0-23
             Integer currentHour = Integer.valueOf(now.format('H', tzId));

@@ -46,17 +46,9 @@ private class AgentGovernorAPITest {
             Is_Active__c = false
         );
 
-        // 4. Out of Hours Config (Forced Closed)
-        Agent_Governor_Configuration__c timeConfig = new Agent_Governor_Configuration__c(
-            Name = 'Out of Hours Pilot',
-            Governor_Key__c = 'time-v1',
-            Is_Active__c = true,
-            Is_Green__c = true,
-            Time_Zone__c = 'UTC',
-            Start_Hour__c = 0,
-            End_Hour__c = 0, // Setting Start/End to 0 ensures the current hour is always >= End_Hour
-            Exclude_Weekends__c = false
-        );
+        // 4. (The "out of hours" config is built inside testOutOfHours itself, because it needs
+        // a valid same-day window — End > Start, enforced by the Operating_Hours_Valid rule —
+        // that deliberately excludes the current hour. See testOutOfHours below.)
 
         // 5. No Operating Hours Config — timezone set, but Start/End hours left blank.
         // Should be treated as "hours not configured" -> always open.
@@ -70,7 +62,7 @@ private class AgentGovernorAPITest {
             // Start_Hour__c / End_Hour__c deliberately left null
         );
 
-        insert new List<Agent_Governor_Configuration__c>{happyConfig, quotaConfig, staleQuotaConfig, inactiveConfig, timeConfig, noHoursConfig};
+        insert new List<Agent_Governor_Configuration__c>{happyConfig, quotaConfig, staleQuotaConfig, inactiveConfig, noHoursConfig};
     }
 
     // --- HELPER METHOD: Mocks the incoming HTTP Request ---
@@ -159,13 +151,33 @@ private class AgentGovernorAPITest {
 
     @isTest
     static void testOutOfHours() {
+        // Build a VALID same-day window (End > Start, per the Operating_Hours_Valid rule) that
+        // deliberately excludes the CURRENT hour, so we get a deterministic "closed" result
+        // without relying on the old invalid 0->0 sentinel. The window [startH, endH) is
+        // constructed so the current hour is never inside it.
+        Integer h = Integer.valueOf(DateTime.now().format('H', 'UTC'));
+        Integer startH = (h == 0) ? 1 : 0;
+        Integer endH   = (h == 0) ? 2 : h;   // hour is < startH (when h=0) or >= endH (when h>0) -> closed
+
+        Agent_Governor_Configuration__c timeConfig = new Agent_Governor_Configuration__c(
+            Name = 'Out of Hours Pilot',
+            Governor_Key__c = 'time-v1',
+            Is_Active__c = true,
+            Is_Green__c = true,
+            Time_Zone__c = 'UTC',
+            Start_Hour__c = startH,
+            End_Hour__c = endH,
+            Exclude_Weekends__c = false
+        );
+        insert timeConfig;
+
         setupRestContext('time-v1');
-        
+
         Test.startTest();
         AgentGovernorAPI.ResponseWrapper response = AgentGovernorAPI.checkStatus();
         Test.stopTest();
-        
-        System.assertEquals('STOP', response.status, 'Status should be STOP');
+
+        System.assertEquals('STOP', response.status, 'Status should be STOP outside operating hours');
         System.assertEquals('TIME', response.reason, 'Reason should be TIME');
     }
     
@@ -189,11 +201,76 @@ private class AgentGovernorAPITest {
         Test.startTest();
         AgentGovernorAPI.ResponseWrapper response = AgentGovernorAPI.checkStatus();
         Test.stopTest();
-        
-        // Because we cannot definitively mock DateTime.now() in standard Apex without dependency injection,
-        // we assert that the code executes successfully without runtime errors and returns a valid status.
-        // It will return 'STOP'/'WEEKEND' on Sat/Sun, and 'GO'/'OK' on Mon-Fri.
-        System.assertNotEquals(null, response.status, 'Response status should not be null');
-        System.assert(response.status == 'GO' || response.status == 'STOP', 'Status must be GO or STOP');
+
+        // We can't mock DateTime.now() in standard Apex, but we CAN compute what today
+        // actually is in the config's time zone and assert the exact expected branch. That
+        // makes this meaningful (a broken weekend check now fails the test) instead of a
+        // tautology, and across a week of runs it exercises both the weekend and weekday paths.
+        String dayOfWeek = DateTime.now().format('EEE', 'UTC');
+        Boolean isWeekend = (dayOfWeek == 'Sat' || dayOfWeek == 'Sun');
+
+        if (isWeekend) {
+            System.assertEquals('STOP', response.status, 'On a weekend the agent must be stopped');
+            System.assertEquals('WEEKEND', response.reason, 'Reason should be WEEKEND on Sat/Sun');
+        } else {
+            System.assertEquals('GO', response.status, 'On a weekday the agent should be shown');
+            System.assertEquals('OK', response.reason, 'Reason should be OK on a weekday');
+        }
+    }
+
+    // Positive counterpart to testOutOfHours: a valid same-day window (End > Start) that
+    // DOES include the current hour must return GO/OK. Built dynamically so it is deterministic
+    // regardless of when the suite runs. Together the two tests exercise both the in-window and
+    // out-of-window branches of the operating-hours check.
+    @isTest
+    static void testWithinOperatingHours() {
+        // A window [0, 24) always includes the current hour (0-23) and satisfies End > Start.
+        Agent_Governor_Configuration__c openConfig = new Agent_Governor_Configuration__c(
+            Name = 'In Hours Pilot',
+            Governor_Key__c = 'inhours-v1',
+            Is_Active__c = true,
+            Is_Green__c = true,
+            Time_Zone__c = 'UTC',
+            Start_Hour__c = 0,
+            End_Hour__c = 24,
+            Exclude_Weekends__c = false
+        );
+        insert openConfig;
+
+        setupRestContext('inhours-v1');
+
+        Test.startTest();
+        AgentGovernorAPI.ResponseWrapper response = AgentGovernorAPI.checkStatus();
+        Test.stopTest();
+
+        System.assertEquals('GO', response.status, 'Within operating hours the agent should be shown');
+        System.assertEquals('OK', response.reason, 'Reason should be OK within operating hours');
+    }
+
+    // The Operating_Hours_Valid rule must reject a transposed/equal window (End <= Start).
+    // This proves the guardrail is live: an admin who enters Start 17, End 9 (a transposition)
+    // or Start 9, End 9 (equal) is blocked at save time rather than silently mis-scheduling.
+    @isTest
+    static void testTransposedHoursRejected() {
+        Boolean blocked = false;
+        try {
+            insert new Agent_Governor_Configuration__c(
+                Name = 'Transposed Hours',
+                Governor_Key__c = 'transposed-v1',
+                Is_Active__c = true,
+                Is_Green__c = true,
+                Time_Zone__c = 'UTC',
+                Start_Hour__c = 17,
+                End_Hour__c = 9,
+                Exclude_Weekends__c = false
+            );
+        } catch (DmlException e) {
+            blocked = true;
+            System.assert(
+                e.getMessage().contains('End Hour must be later than Start Hour'),
+                'Expected the Operating_Hours_Valid message, got: ' + e.getMessage()
+            );
+        }
+        System.assertEquals(true, blocked, 'A transposed window (End <= Start) must be blocked by the validation rule');
     }
 }

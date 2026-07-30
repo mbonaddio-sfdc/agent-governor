@@ -26,10 +26,26 @@ private class AgentGovernorTriggerTest {
             Name = 'Test User',
             MessagingChannelId = testChannel.Id,
             MessageType = 'Text',
-            MessagingPlatformKey = '+15555551234', 
+            MessagingPlatformKey = '+15555551234',
             MessagingConsentStatus = 'ImplicitlyOptedIn'
         );
         insert testUser;
+
+        // 2b. A Governor config linked to that channel, so we can prove the trigger
+        // actually incremented its counter — not merely that the session row inserted.
+        // Reset_Date stamped as today (in the config's TZ) so the engine increments
+        // rather than performing a new-day reset.
+        Agent_Governor_Configuration__c config = new Agent_Governor_Configuration__c(
+            Name = 'Trigger Count Test',
+            Governor_Key__c = 'trigger-v1',
+            Linked_Channel_Id__c = testChannel.Id,
+            Current_Count__c = 0,
+            Daily_Limit__c = 10,
+            Is_Green__c = true,
+            Time_Zone__c = 'UTC',
+            Reset_Date__c = GovernorEngine.getLocalToday('UTC')
+        );
+        insert config;
 
         // 3. Create the actual Messaging Session to fire the trigger
         MessagingSession testSession = new MessagingSession(
@@ -48,5 +64,13 @@ private class AgentGovernorTriggerTest {
 
         // 5. Assertions
         System.assertNotEquals(null, testSession.Id, 'Messaging Session should be inserted successfully.');
+
+        // The trigger fires GovernorEngine.incrementAndEvaluate (@future), forced to run by
+        // Test.stopTest() above. Confirm the linked config's counter actually advanced 0 -> 1.
+        Agent_Governor_Configuration__c updated = [
+            SELECT Current_Count__c FROM Agent_Governor_Configuration__c
+            WHERE Governor_Key__c = 'trigger-v1' LIMIT 1
+        ];
+        System.assertEquals(1, updated.Current_Count__c, 'Trigger should have incremented the daily count to 1');
     }
 }

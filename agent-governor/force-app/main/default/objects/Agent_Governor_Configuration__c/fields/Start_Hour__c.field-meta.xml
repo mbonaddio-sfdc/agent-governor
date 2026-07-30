@@ -3,7 +3,7 @@
     <fullName>Start_Hour__c</fullName>
     <description>The integer hour (0-23) when traffic is allowed to start.</description>
     <externalId>false</externalId>
-    <inlineHelpText>0-23 format. Enter the hour the Agent should appear (e.g., 9 for 9:00 AM).</inlineHelpText>
+    <inlineHelpText>0-23 format. The hour the Agent starts showing (e.g., 9 for 9:00 AM). Must be EARLIER than End Hour. Leave both Start and End blank to run at all hours.</inlineHelpText>
     <label>Start Hour</label>
     <precision>2</precision>
     <required>false</required>

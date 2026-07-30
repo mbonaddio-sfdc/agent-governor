@@ -3,7 +3,7 @@
     <fullName>End_Hour__c</fullName>
     <description>The integer hour (0-23) when traffic is blocked.</description>
     <externalId>false</externalId>
-    <inlineHelpText>0-23 format. Enter the hour the Agent should hide (e.g., 17 for 5:00 PM).</inlineHelpText>
+    <inlineHelpText>0-24 format. The hour the Agent stops showing (e.g., 17 for 5:00 PM). Must be LATER than Start Hour — a window like 9 to 17 means the Agent shows 9am up to (not including) 5pm. Overnight windows that cross midnight are not supported.</inlineHelpText>
     <label>End Hour</label>
     <precision>2</precision>
     <required>false</required>

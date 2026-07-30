@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Exclude_Weekends__c</fullName>
-    <defaultValue>true</defaultValue>
-    <description>Binary filter to block traffic on Saturday and Sunday.</description>
-    <inlineHelpText>If checked, the Agent will be hidden on Saturdays and Sundays based on the configured Time Zone.</inlineHelpText>
+    <defaultValue>false</defaultValue>
+    <description>Binary filter to block traffic on Saturday and Sunday. Defaults to off; when checked, a Time Zone is required so the weekend can be evaluated.</description>
+    <inlineHelpText>If checked, the Agent is hidden on Saturdays and Sundays, evaluated in the configured Time Zone. You must set a Time Zone for this to take effect.</inlineHelpText>
     <label>Exclude Weekends</label>
     <trackHistory>true</trackHistory>
     <trackTrending>false</trackTrending>

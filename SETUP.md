@@ -6,11 +6,11 @@ This guide gets your machine set up to manage Agent Governor with **Claude Code*
 the **Salesforce CLI** — no VS Code required. You do this once. After that, you work by
 telling Claude Code what you want in plain English.
 
-> **Note on the folder layout.** This repo has the Salesforce project nested one level
-> down. The important marker is the file **`sfdx-project.json`**. In this repo it lives in:
-> `agent-governor/agent-governor/`. **All Salesforce CLI (`sf`) commands must be run from
-> the folder that contains `sfdx-project.json`** — otherwise the CLI won't recognise it as
-> a project. When in doubt, `cd` into that folder first.
+> **Note on the folder layout.** The Salesforce project lives at the **root of this repo**.
+> The important marker is the file **`sfdx-project.json`**, which sits alongside this
+> `SETUP.md` in the repo's top folder. **All Salesforce CLI (`sf`) commands must be run from
+> the folder that contains `sfdx-project.json`** (i.e. the repo root) — otherwise the CLI
+> won't recognise it as a project.
 
 ---
 
@@ -94,7 +94,7 @@ claude --version
 This is a one-time login that lets the CLI act on your org. Run it from the project folder:
 
 ```bash
-cd "/Users/mbonaddio/Documents/Projects/agent-governor/agent-governor"
+cd "/Users/mbonaddio/Documents/Projects/agent-governor"
 sf org login web --alias governor-prod
 ```
 

@@ -1,36 +1,88 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Agent Governor deployment manifest.
+
+  Explicit list of every component in this package (no wildcards), so a
+  manifest-based deploy or retrieve moves exactly the Agent Governor metadata
+  and nothing else in the org. Keep this file in step with force-app when
+  components are added or removed.
+
+  Deploy with the manifest flag, e.g.:
+    sf project deploy start (manifest) manifest/package.xml (target-org) ALIAS
+  A source-tree deploy that points at the force-app directory does not read
+  this file; it deploys the whole directory. Either route deploys the same set.
+-->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>*</members>
+        <members>AgentGovernorAPI</members>
+        <members>AgentGovernorAPITest</members>
+        <members>AgentGovernorTriggerTest</members>
+        <members>GovernorEngine</members>
+        <members>GovernorEngineTest</members>
         <name>ApexClass</name>
     </types>
     <types>
-        <members>*</members>
-        <name>ApexComponent</name>
-    </types>
-    <types>
-        <members>*</members>
-        <name>ApexPage</name>
-    </types>
-    <types>
-        <members>*</members>
-        <name>ApexTestSuite</name>
-    </types>
-    <types>
-        <members>*</members>
+        <members>AgentGovernorTrigger</members>
         <name>ApexTrigger</name>
     </types>
     <types>
-        <members>*</members>
-        <name>AuraDefinitionBundle</name>
+        <members>Agent_Governor_Configuration__c.Highlights_Panel</members>
+        <name>CompactLayout</name>
     </types>
     <types>
-        <members>*</members>
-        <name>LightningComponentBundle</name>
+        <members>Agent_Governor_Logo</members>
+        <name>ContentAsset</name>
     </types>
     <types>
-        <members>*</members>
-        <name>StaticResource</name>
+        <members>Agent_Governor</members>
+        <name>CustomApplication</name>
+    </types>
+    <types>
+        <members>Agent_Governor_Configuration__c.Current_Count__c</members>
+        <members>Agent_Governor_Configuration__c.Daily_Limit__c</members>
+        <members>Agent_Governor_Configuration__c.End_Hour__c</members>
+        <members>Agent_Governor_Configuration__c.Exclude_Weekends__c</members>
+        <members>Agent_Governor_Configuration__c.Governor_Key__c</members>
+        <members>Agent_Governor_Configuration__c.Is_Active__c</members>
+        <members>Agent_Governor_Configuration__c.Is_Green__c</members>
+        <members>Agent_Governor_Configuration__c.Linked_Channel_ID__c</members>
+        <members>Agent_Governor_Configuration__c.Reset_Date__c</members>
+        <members>Agent_Governor_Configuration__c.Sampling_Rate__c</members>
+        <members>Agent_Governor_Configuration__c.Start_Hour__c</members>
+        <members>Agent_Governor_Configuration__c.Time_Zone__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>Agent_Governor_Configuration__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>Agent_Governor_Configuration__c</members>
+        <name>CustomTab</name>
+    </types>
+    <types>
+        <members>Agent_Governor_Configuration_Record_Page</members>
+        <members>Agentforce_Governor_UtilityBar</members>
+        <name>FlexiPage</name>
+    </types>
+    <types>
+        <members>Agent_Governor_Configuration__c-Agent Governor Configuration Layout</members>
+        <name>Layout</name>
+    </types>
+    <types>
+        <members>Agent_Governor_Configuration__c.All</members>
+        <name>ListView</name>
+    </types>
+    <types>
+        <members>Agent_Governor</members>
+        <name>PermissionSet</name>
+    </types>
+    <types>
+        <members>Agent_Governor_Configuration__c.Operating_Hours_Both_Or_Neither</members>
+        <members>Agent_Governor_Configuration__c.Operating_Hours_Valid</members>
+        <members>Agent_Governor_Configuration__c.Sampling_Rate_In_Range</members>
+        <members>Agent_Governor_Configuration__c.Time_Zone_Required_With_Schedule</members>
+        <name>ValidationRule</name>
     </types>
     <version>66.0</version>
 </Package>

@@ -41,8 +41,13 @@ public without sharing class GovernorEngine {
             c.Current_Count__c = (c.Current_Count__c == null ? 0 : c.Current_Count__c) + 1;
             
             // 4. Check Hard Limit
-            if (c.Current_Count__c >= c.Daily_Limit__c) {
-                c.Is_Green__c = false; // Kill Switch
+            // Only enforce a count cap when a Daily_Limit is actually configured.
+            // A blank limit means "no daily conversation cap" — the admin can still
+            // gate exposure via Is_Active, sampling and operating hours. We guard the
+            // null here explicitly so this is intentional, not an accident of how
+            // Apex evaluates `count >= null` (which is false).
+            if (c.Daily_Limit__c != null && c.Current_Count__c >= c.Daily_Limit__c) {
+                c.Is_Green__c = false; // quota exhausted for today
             }
             
             configsToUpdate.add(c);

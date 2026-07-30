@@ -77,11 +77,16 @@ global without sharing class AgentGovernorAPI {
         }
 
         // B. Operating Hours Check
-        // format('H', tzId) returns 0-23
-        Integer currentHour = Integer.valueOf(now.format('H', tzId)); 
-        
-        if (currentHour < config.Start_Hour__c || currentHour >= config.End_Hour__c) {
-            return 'TIME';
+        // Only enforce operating hours when BOTH bounds are set. A half-configured
+        // window (one bound blank) is treated as "hours not configured" -> always open,
+        // rather than silently applying a partial rule. Guarding explicitly here so the
+        // behaviour is intentional, not a side effect of `hour < null` being false.
+        if (config.Start_Hour__c != null && config.End_Hour__c != null) {
+            // format('H', tzId) returns 0-23
+            Integer currentHour = Integer.valueOf(now.format('H', tzId));
+            if (currentHour < config.Start_Hour__c || currentHour >= config.End_Hour__c) {
+                return 'TIME';
+            }
         }
 
         return 'OK';

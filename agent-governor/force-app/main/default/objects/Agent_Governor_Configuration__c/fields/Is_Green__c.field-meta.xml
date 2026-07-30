@@ -3,7 +3,7 @@
     <fullName>Is_Green__c</fullName>
     <defaultValue>false</defaultValue>
     <description>System flag indicating if the quota is open or exhausted. Logic Engine updates this.</description>
-    <inlineHelpText>System Flag. Checked = Agent is Available. Unchecked = Daily Limit has been reached or manually overridden.</inlineHelpText>
+    <inlineHelpText>System flag, managed automatically — do not edit by hand. Checked = quota open. Unchecked = today's Daily Limit has been reached (resets automatically on the next day). To switch the Agent off manually, use the Active checkbox instead.</inlineHelpText>
     <label>Is Green</label>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>

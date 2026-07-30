@@ -58,7 +58,19 @@ private class AgentGovernorAPITest {
             Exclude_Weekends__c = false
         );
 
-        insert new List<Agent_Governor_Configuration__c>{happyConfig, quotaConfig, staleQuotaConfig, inactiveConfig, timeConfig};
+        // 5. No Operating Hours Config — timezone set, but Start/End hours left blank.
+        // Should be treated as "hours not configured" -> always open.
+        Agent_Governor_Configuration__c noHoursConfig = new Agent_Governor_Configuration__c(
+            Name = 'No Hours Pilot',
+            Governor_Key__c = 'nohours-v1',
+            Is_Active__c = true,
+            Is_Green__c = true,
+            Time_Zone__c = 'UTC',
+            Exclude_Weekends__c = false
+            // Start_Hour__c / End_Hour__c deliberately left null
+        );
+
+        insert new List<Agent_Governor_Configuration__c>{happyConfig, quotaConfig, staleQuotaConfig, inactiveConfig, timeConfig, noHoursConfig};
     }
 
     // --- HELPER METHOD: Mocks the incoming HTTP Request ---
@@ -114,6 +126,20 @@ private class AgentGovernorAPITest {
 
         System.assertEquals('GO', response.status, 'A quota flag set on a previous day must be ignored -> GO');
         System.assertEquals('OK', response.reason, 'Reason should be OK once the stale quota is bypassed');
+    }
+
+    // A config with a timezone but no Start/End hours must not silently apply a
+    // partial hours rule — it should be treated as always open and return GO.
+    @isTest
+    static void testNoOperatingHoursIsOpen() {
+        setupRestContext('nohours-v1');
+
+        Test.startTest();
+        AgentGovernorAPI.ResponseWrapper response = AgentGovernorAPI.checkStatus();
+        Test.stopTest();
+
+        System.assertEquals('GO', response.status, 'Blank operating hours should be treated as always open');
+        System.assertEquals('OK', response.reason, 'Reason should be OK when hours are not configured');
     }
 
     @isTest

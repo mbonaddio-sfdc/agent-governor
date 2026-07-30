@@ -10,9 +10,10 @@ private class GovernorEngineTest {
         MessagingChannel ch1 = new MessagingChannel(MasterLabel='Ch1', DeveloperName='Ch1', MessageType='Text', MessagingPlatformKey='+111');
         MessagingChannel ch2 = new MessagingChannel(MasterLabel='Ch2', DeveloperName='Ch2', MessageType='Text', MessagingPlatformKey='+222');
         MessagingChannel ch3 = new MessagingChannel(MasterLabel='Ch3', DeveloperName='Ch3', MessageType='Text', MessagingPlatformKey='+333');
-        
+        MessagingChannel ch4 = new MessagingChannel(MasterLabel='Ch4', DeveloperName='Ch4', MessageType='Text', MessagingPlatformKey='+444');
+
         System.runAs(thisUser) {
-            insert new List<MessagingChannel>{ch1, ch2, ch3};
+            insert new List<MessagingChannel>{ch1, ch2, ch3, ch4};
         }
 
         // 2. Config A: The "Kill Switch" Scenario 
@@ -59,7 +60,20 @@ private class GovernorEngineTest {
             // Time_Zone__c deliberately left null
         );
 
-        insert new List<Agent_Governor_Configuration__c>{configKillSwitch, configReset, configNoTz};
+        // 5. Config D: No Daily Limit set — the count should climb but the kill
+        // switch must never trip, because no cap is configured.
+        Agent_Governor_Configuration__c configNoLimit = new Agent_Governor_Configuration__c(
+            Name = 'No Limit Test',
+            Governor_Key__c = 'nolimit-1',
+            Linked_Channel_Id__c = ch4.Id,
+            Current_Count__c = 5,
+            // Daily_Limit__c deliberately left null
+            Is_Green__c = true,
+            Reset_Date__c = GovernorEngine.getLocalToday('UTC'),
+            Time_Zone__c = 'UTC'
+        );
+
+        insert new List<Agent_Governor_Configuration__c>{configKillSwitch, configReset, configNoTz, configNoLimit};
     }
 
     @isTest
@@ -95,6 +109,10 @@ private class GovernorEngineTest {
             } 
             else if (res.Name == 'No TZ Test') {
                 System.assertEquals(2, res.Current_Count__c, 'Fallback logic should increment count to 2');
+            }
+            else if (res.Name == 'No Limit Test') {
+                System.assertEquals(6, res.Current_Count__c, 'Count should still increment when no limit is set');
+                System.assertEquals(true, res.Is_Green__c, 'A blank Daily Limit must never trip the kill switch');
             }
         }
     }

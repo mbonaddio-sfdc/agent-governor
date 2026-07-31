@@ -73,4 +73,52 @@ private class AgentGovernorTriggerTest {
         ];
         System.assertEquals(1, updated.Current_Count__c, 'Trigger should have incremented the daily count to 1');
     }
+
+    // Good-neighbour guard: a MessagingSession on a channel that NO config is watching must
+    // NOT enqueue the async counter. Without the pre-check in the trigger, every session
+    // insert org-wide would spend an @future from the org's shared async budget. We prove the
+    // guard by inserting a session on an unlinked channel and asserting no future was queued.
+    @isTest
+    static void testTriggerSkipsUngovernedChannel() {
+        User thisUser = [SELECT Id FROM User WHERE Id = :UserInfo.getUserId()];
+
+        MessagingChannel otherChannel;
+        System.runAs(thisUser) {
+            otherChannel = new MessagingChannel(
+                MasterLabel = 'Ungoverned Channel',
+                DeveloperName = 'Ungoverned_Channel',
+                MessageType = 'Text',
+                MessagingPlatformKey = '+15555550000'
+            );
+            insert otherChannel;
+        }
+
+        MessagingEndUser otherUser = new MessagingEndUser(
+            Name = 'Ungoverned User',
+            MessagingChannelId = otherChannel.Id,
+            MessageType = 'Text',
+            MessagingPlatformKey = '+15555554321',
+            MessagingConsentStatus = 'ImplicitlyOptedIn'
+        );
+        insert otherUser;
+
+        // Deliberately NO Agent_Governor_Configuration__c pointing at otherChannel.
+
+        MessagingSession session = new MessagingSession(
+            MessagingChannelId = otherChannel.Id,
+            MessagingEndUserId = otherUser.Id,
+            Status = 'Active'
+        );
+
+        Test.startTest();
+        insert session; // fires the trigger; the guard should short-circuit before enqueuing
+        // getFutureCalls() counts @future invocations made so far in THIS transaction. The
+        // enqueue (if any) happens synchronously inside the trigger during the insert above,
+        // so we read the counter before stopTest() flushes the async queue.
+        System.assertEquals(0, Limits.getFutureCalls(),
+            'An ungoverned channel must not enqueue the async counter (@future)');
+        Test.stopTest();
+
+        System.assertNotEquals(null, session.Id, 'The session itself must still insert normally');
+    }
 }

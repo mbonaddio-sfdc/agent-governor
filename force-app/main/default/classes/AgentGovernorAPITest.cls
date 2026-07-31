@@ -146,36 +146,31 @@ private class AgentGovernorAPITest {
         setupRestContext('invalid-key-xyz');
         AgentGovernorAPI.ResponseWrapper response2 = AgentGovernorAPI.checkStatus();
         System.assertEquals('STOP', response2.status, 'Status should be STOP when config is not found');
-        System.assertEquals('INACTIVE', response2.reason, 'Reason should default to INACTIVE');
+        System.assertEquals('NOTFOUND', response2.reason, 'A missing/unknown key must return NOTFOUND, distinct from an existing-but-switched-off INACTIVE record');
     }
 
     @isTest
     static void testOutOfHours() {
-        // Build a VALID same-day window (End > Start, per the Operating_Hours_Valid rule) that
-        // deliberately excludes the CURRENT hour, so we get a deterministic "closed" result
-        // without relying on the old invalid 0->0 sentinel. The window [startH, endH) is
-        // constructed so the current hour is never inside it.
-        Integer h = Integer.valueOf(DateTime.now().format('H', 'UTC'));
-        Integer startH = (h == 0) ? 1 : 0;
-        Integer endH   = (h == 0) ? 2 : h;   // hour is < startH (when h=0) or >= endH (when h>0) -> closed
-
+        // Deterministic "closed" result via the clock seam. We pin "now" to a known instant
+        // (Thursday 2026-07-30 12:00 UTC) and set a valid early-morning window [0, 1) that
+        // cannot contain noon. End > Start satisfies the Operating_Hours_Valid rule, so this
+        // is a genuine closed window — no dependency on when the suite actually runs.
         Agent_Governor_Configuration__c timeConfig = new Agent_Governor_Configuration__c(
             Name = 'Out of Hours Pilot',
             Governor_Key__c = 'time-v1',
             Is_Active__c = true,
             Is_Green__c = true,
             Time_Zone__c = 'UTC',
-            Start_Hour__c = startH,
-            End_Hour__c = endH,
+            Start_Hour__c = 0,
+            End_Hour__c = 1,
             Exclude_Weekends__c = false
         );
         insert timeConfig;
 
+        GovernorEngine.overrideNow = DateTime.newInstanceGmt(2026, 7, 30, 12, 0, 0); // Thu 12:00 UTC
         setupRestContext('time-v1');
 
-        Test.startTest();
         AgentGovernorAPI.ResponseWrapper response = AgentGovernorAPI.checkStatus();
-        Test.stopTest();
 
         System.assertEquals('STOP', response.status, 'Status should be STOP outside operating hours');
         System.assertEquals('TIME', response.reason, 'Reason should be TIME');
@@ -183,7 +178,8 @@ private class AgentGovernorAPITest {
     
     @isTest
     static void testWeekendLogic() {
-        // Create a config that excludes weekends.
+        // Create a config that excludes weekends and is otherwise wide open (0-24, no quota),
+        // so the ONLY thing that can flip the answer is the weekend branch.
         Agent_Governor_Configuration__c weekendConfig = new Agent_Governor_Configuration__c(
             Name = 'Weekend Test',
             Governor_Key__c = 'weekend-v1',
@@ -195,53 +191,59 @@ private class AgentGovernorAPITest {
             Exclude_Weekends__c = true
         );
         insert weekendConfig;
-        
+
         setupRestContext('weekend-v1');
-        
-        Test.startTest();
-        AgentGovernorAPI.ResponseWrapper response = AgentGovernorAPI.checkStatus();
-        Test.stopTest();
 
-        // We can't mock DateTime.now() in standard Apex, but we CAN compute what today
-        // actually is in the config's time zone and assert the exact expected branch. That
-        // makes this meaningful (a broken weekend check now fails the test) instead of a
-        // tautology, and across a week of runs it exercises both the weekend and weekday paths.
-        String dayOfWeek = DateTime.now().format('EEE', 'UTC');
-        Boolean isWeekend = (dayOfWeek == 'Sat' || dayOfWeek == 'Sun');
+        // Pin "now" to KNOWN calendar days via the clock seam rather than re-deriving the
+        // expected answer from the same date code we're testing (which could never catch a
+        // locale bug). 2026-08-01 is a Saturday, 2026-08-02 a Sunday, 2026-07-30 a Thursday.
+        // Because checkStatus() is fully synchronous we can exercise all three days in one
+        // transaction. This asserts the ISO-day-of-week ('u') logic directly and is stable
+        // no matter which day — or which locale — the suite runs under.
 
-        if (isWeekend) {
-            System.assertEquals('STOP', response.status, 'On a weekend the agent must be stopped');
-            System.assertEquals('WEEKEND', response.reason, 'Reason should be WEEKEND on Sat/Sun');
-        } else {
-            System.assertEquals('GO', response.status, 'On a weekday the agent should be shown');
-            System.assertEquals('OK', response.reason, 'Reason should be OK on a weekday');
-        }
+        // Saturday -> STOP / WEEKEND
+        GovernorEngine.overrideNow = DateTime.newInstanceGmt(2026, 8, 1, 12, 0, 0);
+        AgentGovernorAPI.ResponseWrapper sat = AgentGovernorAPI.checkStatus();
+        System.assertEquals('STOP', sat.status, 'Saturday must stop when weekends are excluded');
+        System.assertEquals('WEEKEND', sat.reason, 'Reason should be WEEKEND on Saturday');
+
+        // Sunday -> STOP / WEEKEND
+        GovernorEngine.overrideNow = DateTime.newInstanceGmt(2026, 8, 2, 12, 0, 0);
+        AgentGovernorAPI.ResponseWrapper sun = AgentGovernorAPI.checkStatus();
+        System.assertEquals('STOP', sun.status, 'Sunday must stop when weekends are excluded');
+        System.assertEquals('WEEKEND', sun.reason, 'Reason should be WEEKEND on Sunday');
+
+        // Thursday (weekday) -> GO / OK
+        GovernorEngine.overrideNow = DateTime.newInstanceGmt(2026, 7, 30, 12, 0, 0);
+        AgentGovernorAPI.ResponseWrapper wd = AgentGovernorAPI.checkStatus();
+        System.assertEquals('GO', wd.status, 'A weekday must be allowed');
+        System.assertEquals('OK', wd.reason, 'Reason should be OK on a weekday');
     }
 
     // Positive counterpart to testOutOfHours: a valid same-day window (End > Start) that
-    // DOES include the current hour must return GO/OK. Built dynamically so it is deterministic
-    // regardless of when the suite runs. Together the two tests exercise both the in-window and
-    // out-of-window branches of the operating-hours check.
+    // DOES include the pinned hour must return GO/OK. Together the two tests exercise both the
+    // in-window and out-of-window branches of the operating-hours check, deterministically.
     @isTest
     static void testWithinOperatingHours() {
-        // A window [0, 24) always includes the current hour (0-23) and satisfies End > Start.
+        // A 9-17 window with "now" pinned to Thursday 2026-07-30 12:00 UTC (noon is inside the
+        // window and a weekday, so no other branch interferes). End > Start satisfies the
+        // Operating_Hours_Valid rule.
         Agent_Governor_Configuration__c openConfig = new Agent_Governor_Configuration__c(
             Name = 'In Hours Pilot',
             Governor_Key__c = 'inhours-v1',
             Is_Active__c = true,
             Is_Green__c = true,
             Time_Zone__c = 'UTC',
-            Start_Hour__c = 0,
-            End_Hour__c = 24,
+            Start_Hour__c = 9,
+            End_Hour__c = 17,
             Exclude_Weekends__c = false
         );
         insert openConfig;
 
+        GovernorEngine.overrideNow = DateTime.newInstanceGmt(2026, 7, 30, 12, 0, 0); // Thu 12:00 UTC
         setupRestContext('inhours-v1');
 
-        Test.startTest();
         AgentGovernorAPI.ResponseWrapper response = AgentGovernorAPI.checkStatus();
-        Test.stopTest();
 
         System.assertEquals('GO', response.status, 'Within operating hours the agent should be shown');
         System.assertEquals('OK', response.reason, 'Reason should be OK within operating hours');

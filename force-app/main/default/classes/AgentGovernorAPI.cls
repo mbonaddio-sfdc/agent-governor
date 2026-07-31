@@ -3,7 +3,7 @@ global without sharing class AgentGovernorAPI {
 
     global class ResponseWrapper {
         public String status;       // "GO" or "STOP"
-        public String reason;       // "OK", "QUOTA", "PACING", "TIME", "WEEKEND"
+        public String reason;       // GO: "OK". STOP: "NOTFOUND", "INACTIVE", "QUOTA", "TIME", "WEEKEND"
         public Decimal samplingRate;
     }
 
@@ -20,12 +20,22 @@ global without sharing class AgentGovernorAPI {
             WHERE Governor_Key__c = :key LIMIT 1
         ];
 
-        if (configs.isEmpty() || !configs[0].Is_Active__c) { 
-            resp.status = 'STOP'; 
-            resp.reason = 'INACTIVE';
-            return resp; 
+        // No record for this key at all. Distinct from INACTIVE (a record that exists
+        // but has been deliberately switched off) so an integrator can tell a typo'd or
+        // missing key apart from an intentional kill switch when debugging.
+        if (configs.isEmpty()) {
+            resp.status = 'STOP';
+            resp.reason = 'NOTFOUND';
+            return resp;
         }
-        
+
+        // Record exists but the human master switch is off.
+        if (!configs[0].Is_Active__c) {
+            resp.status = 'STOP';
+            resp.reason = 'INACTIVE';
+            return resp;
+        }
+
         Agent_Governor_Configuration__c config = configs[0];
 
         // 2. Hard Quota Check (day-aware)
@@ -66,14 +76,18 @@ global without sharing class AgentGovernorAPI {
         // If no Time Zone is set, we assume it is always open (UTC) or skip checks
         if (config.Time_Zone__c == null) return 'OK'; 
         
-        DateTime now = DateTime.now();
+        DateTime now = GovernorEngine.now(); // shared clock seam (real clock in production)
         String tzId = config.Time_Zone__c; // e.g., 'America/New_York'
-        
+
         // A. Weekend Check
+        // Use the ISO-8601 day-of-week NUMBER, which is locale-independent: format('u')
+        // returns "1" (Monday) through "7" (Sunday), so 6 and 7 are the weekend. The
+        // previous approach matched the English short names 'Sat'/'Sun' from format('EEE'),
+        // which silently fails for a guest user whose locale renders those days in another
+        // language — the check would never match and weekends would never be excluded.
         if (config.Exclude_Weekends__c) {
-            // format('EEE', tzId) returns 'Sat', 'Sun', 'Mon', etc.
-            String dayOfWeek = now.format('EEE', tzId); 
-            if (dayOfWeek == 'Sat' || dayOfWeek == 'Sun') return 'WEEKEND';
+            Integer isoDayOfWeek = Integer.valueOf(now.format('u', tzId));
+            if (isoDayOfWeek == 6 || isoDayOfWeek == 7) return 'WEEKEND';
         }
 
         // B. Operating Hours Check

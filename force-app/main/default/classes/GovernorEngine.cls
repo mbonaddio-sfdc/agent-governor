@@ -1,5 +1,17 @@
 public without sharing class GovernorEngine {
 
+    // ---- Clock seam (test determinism) --------------------------------------
+    // Tests can pin "now" so the weekend, operating-hours and day-rollover logic is
+    // deterministic and independent of when the suite happens to run. Production never
+    // sets this, so now() returns the real clock. Kept @TestVisible so the override is
+    // not part of the class's callable surface at runtime; now() is public because the
+    // read path (AgentGovernorAPI) shares the same clock.
+    @TestVisible private static DateTime overrideNow = null;
+
+    public static DateTime now() {
+        return (overrideNow != null) ? overrideNow : DateTime.now();
+    }
+
     /**
      * Returns "today's" date for the given IANA time zone (e.g. 'Australia/Sydney').
      * Shared by the increment path (GovernorEngine) and the read path (AgentGovernorAPI)
@@ -7,7 +19,7 @@ public without sharing class GovernorEngine {
      */
     public static Date getLocalToday(String tzId) {
         if (tzId != null) {
-            return Date.valueOf(DateTime.now().format('yyyy-MM-dd', tzId));
+            return Date.valueOf(now().format('yyyy-MM-dd', tzId));
         }
         return Date.today();
     }

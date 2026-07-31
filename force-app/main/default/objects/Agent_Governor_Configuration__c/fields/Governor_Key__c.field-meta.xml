@@ -7,7 +7,7 @@
     <inlineHelpText>Enter a unique string (e.g., service-v1). This must match the GOVERNOR_KEY constant defined in your website JavaScript wrapper.</inlineHelpText>
     <label>Governor Key</label>
     <length>50</length>
-    <required>false</required>
+    <required>true</required>
     <trackHistory>true</trackHistory>
     <trackTrending>false</trackTrending>
     <type>Text</type>

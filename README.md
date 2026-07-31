@@ -53,6 +53,38 @@ In practice, Agent Governor lets you:
 > Screenshots and an architecture diagram will be added to the [/docs/](/docs/) folder. `[TBD]`
 
 
+## Scope and limitations (please read)
+
+Agent Governor is a **rollout-control** tool, not a security or compliance control. Being
+clear about what it does *not* do is what makes it safe to rely on for what it *does* do.
+
+* **Exposure is not a security boundary.** The Governor decides whether your *website chooses
+  to show* the agent — it does not restrict who can reach the underlying Agentforce/MIAW
+  endpoint. The sampling roll, operating-hours check and daily cap all run in the visitor's
+  browser (or a guest endpoint the browser calls), so a technically-minded visitor who
+  inspects the page can start a conversation with your already-deployed MIAW channel
+  directly, regardless of the Governor's decision. Treat the Governor as a way to control the
+  *volume and timing of normal traffic*, and secure the agent itself with MIAW's own
+  pre-chat, authentication, and channel settings.
+
+* **CORS is not a control.** The CORS allowlist (setup Step 3) only tells *browsers* which
+  origins may read the endpoint's response; it is a convenience for legitimate first-party
+  pages, not a gate. It does not authenticate callers and is trivially bypassed by any
+  non-browser client. Do not rely on CORS to keep anyone out — the endpoint is deliberately
+  public and returns only a `GO`/`STOP` decision, never record data.
+
+* **The daily limit is a soft ceiling, not a hard gate.** The counter is incremented
+  *asynchronously* after each conversation starts (a trigger enqueues an `@future` job), and
+  the `GO`/`STOP` read happens before that write settles. Under a burst of near-simultaneous
+  sessions, several can be admitted in the window before the flag flips, so actual
+  conversations for the day can slightly **overshoot** the configured limit. Size the limit
+  as a budget with headroom, not as a precise cutoff.
+
+* **Fail-safe, not fail-secure.** If the endpoint is slow or unreachable the wrapper hides the
+  agent (or falls back to your existing bot). This protects the visitor experience; it is not
+  a guarantee about the agent's own availability.
+
+
 ## Key Assets
 
 This Accelerator includes the following assets:
@@ -97,8 +129,15 @@ Unmanaged package install link: `[TBD — add package URL once created]`
   `AgentGovernorAPI` Apex class.
 
 **General Assumptions**
-* You are using this Accelerator in a sandbox or test environment first. It is recommended
-  that you not install any Accelerator directly into production environments.
+* **Validate in a sandbox, then run the pilot in production.** As with any Accelerator, install
+  and test it in a sandbox or scratch org first — confirm the deploy, the guest endpoint and
+  the wrapper all behave before you touch production. That said, Agent Governor is *designed*
+  to end up in production: its entire purpose is to expose a live agent to a small, controlled
+  slice of **real** traffic. So unlike a typical Accelerator that stays in a test org, the
+  intended path is sandbox-validated → deployed to production → run governed at a low sampling
+  rate, then ramped. Do the go-live in production deliberately (start with **Is Active** off,
+  a low **Sampling Rate**, and a modest **Daily Limit**), not as an experiment in a sandbox
+  that never sees live visitors.
 * If you do not have a Salesforce org licensed to you, try one of our industry solutions for
   free with one of our [trial environments](https://gpsaccelerators.developer.salesforce.com/trials).
 * You are using this Accelerator with Salesforce Lightning Experience (LEX), not Classic.
@@ -250,9 +289,11 @@ This leaves your agent running at full scale with no residual configuration or t
 **_Q: The agent isn't showing up — is it broken?_**
 
 A: Usually not. The wrapper deliberately hides the agent when a control says so. Open the
-browser console: it logs the reason (`INACTIVE`, `QUOTA`, `TIME`, `WEEKEND`, or "sampled
-out"). Confirm **Is Active** is checked, the daily limit isn't reached, and you're within
-operating hours.
+browser console: it logs the reason (`NOTFOUND`, `INACTIVE`, `QUOTA`, `TIME`, `WEEKEND`, or
+"sampled out"). `NOTFOUND` means no configuration record matched the **Governor Key** in your
+wrapper — check the key is spelled exactly as on the record (distinct from `INACTIVE`, which
+means the record exists but **Is Active** is unchecked). Otherwise confirm the daily limit
+isn't reached and you're within operating hours.
 
 **_Q: Does the widget flicker on and off as a visitor browses?_**
 

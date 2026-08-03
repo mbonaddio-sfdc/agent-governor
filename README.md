@@ -1,4 +1,4 @@
-![Public Sector Accelerators logo](/docs/Logo_GPSAccelerators_v01.png)
+![Public Sector Accelerators logo](docs/Logo_GPSAccelerators_v01.png)
 
 # Agent Governor
 

@@ -212,6 +212,25 @@ configuration records under your org's normal sharing model.
 > it only needs the Apex class enabled, which you do directly on the guest profile in Step 2.
 > (Assigning this full set to a guest user would over-grant object create/edit/delete access.)
 
+#### For release-team operators — use the scoped set instead
+
+If **business users on your release team** need to tune the live controls (flip the kill
+switch, adjust the sampling rate or daily limit, change the active window) but should **not**
+have admin-level rights, assign them the separate **Agent Governor - Release Team** permission
+set rather than the full **Agent Governor** set above. It is least-privilege by design:
+
+* **Read + Edit** on the operator controls only: `Is_Active__c`, `Sampling_Rate__c`,
+  `Daily_Limit__c`, `Start_Hour__c`, `End_Hour__c`, `Time_Zone__c`, `Exclude_Weekends__c`.
+* **Read-only** on the system-managed fields (`Current_Count__c`, `Is_Green__c`,
+  `Reset_Date__c`) so operators can see the live throttle state but cannot edit it and
+  accidentally desync the counter or green/red state.
+* Object **Read + Edit** but **no Create and no Delete** — operators tune existing
+  configuration records, they don't stand up or remove them.
+* **No Apex class access** — operators work through the UI, not the engine classes.
+
+Keep the full **Agent Governor** set for admins who deploy, create records, and manage the
+Apex classes; give release-team operators the **Agent Governor - Release Team** set.
+
 ### Step 2 — Create the public API endpoint (Salesforce Sites)
 
 Because the wrapper runs on a public web page, the visitor's browser has no Salesforce login.

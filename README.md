@@ -267,15 +267,26 @@ to Salesforce is blocked by cross-origin security until you allow the origin.
 
 Open the *Agent Governor* app → **Agent Governor Configurations** tab → **New**, then set:
 
-* **Governor Key** — a unique string (e.g. `pilot-v1`); you'll reference it in the wrapper.
+* **Governor Key** — a short, unique label you choose (e.g. `pilot-v1`, `au-homepage`,
+  `support-au`) that ties this record to the wrapper on your website.
+    * It's the "name" the wrapper asks for: whatever you enter here, you set as `GOVERNOR_KEY`
+      in the wrapper script (Step 5), and the two **must match exactly** — it's case-sensitive,
+      so `Pilot-v1` and `pilot-v1` are different keys.
+    * Pick something descriptive of the site or rollout it controls, and keep it URL-safe
+      (letters, numbers, hyphens — no spaces).
+    * It's **required and must be unique** across your records, so each website/rollout gets
+      its own record and its own key.
+    * *If a visitor's wrapper sends a key that matches no record, the API returns `STOP` /
+      `NOTFOUND` and the agent stays hidden — a handy way to confirm you've wired the right key.*
 * **Linked Channel ID** — the 18-character record ID of the MIAW `MessagingChannel` your
-  agent uses (it typically starts with `0Mj`). To find it, open the channel under **Setup →
-  Messaging Settings** and look in the page URL for the `0Mj…` fragment (it may be
-  URL-encoded, e.g. `recordId=0Mj…` or `address=%2F0Mj…`) — copy the full 18 characters.
-  If you can't spot it there, run `SELECT Id, MasterLabel, DeveloperName FROM MessagingChannel`
-  in the Developer Console (or **Setup → Query Editor**) and copy the `Id` for your channel.
-  **Make sure it starts with `0Mj` (the messaging channel), not `0ej`** — the latter is the
-  Embedded Service **deployment** ID from the web snippet, which is easy to grab by mistake.
+  agent uses (it typically starts with `0Mj`).
+    * **To find it:** open the channel under **Setup → Messaging Settings** and look in the
+      page URL for the `0Mj…` fragment (it may be URL-encoded, e.g. `recordId=0Mj…` or
+      `address=%2F0Mj…`) — copy the full 18 characters.
+    * **If you can't spot it there:** run `SELECT Id, MasterLabel, DeveloperName FROM MessagingChannel`
+      in the Developer Console (or **Setup → Query Editor**) and copy the `Id` for your channel.
+    * ⚠️ **Make sure it starts with `0Mj` (the messaging channel), not `0ej`** — the latter is
+      the Embedded Service **deployment** ID from the web snippet, which is easy to grab by mistake.
 * **The guardrails** — **Sampling Rate** (e.g. 5%), **Daily Limit** (e.g. 50), **Start/End
   Hour** with a **Time Zone**, and **Exclude Weekends** as needed.
 * **Is Active** — check this when you're ready to go live. This is the master on/off switch.

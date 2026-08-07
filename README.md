@@ -265,6 +265,13 @@ to Salesforce is blocked by cross-origin security until you allow the origin.
 
 ### Step 4 — Create a Governor configuration record
 
+Each configuration record is the **control panel for one rollout** — one website, page, or
+pilot. It's where the throttles live: the record decides whether the agent is allowed to appear
+right now, and its **Governor Key** is what ties it to the wrapper script on your site. The
+wrapper asks the API "is the agent clear to show for *this* key?" on every page load, and this
+record holds the answer. You'll typically create one record per site or rollout you want to
+govern independently.
+
 Open the *Agent Governor* app → **Agent Governor Configurations** tab → **New**, then set:
 
 * **Governor Key** — a short, unique label you choose (e.g. `pilot-v1`, `au-homepage`,

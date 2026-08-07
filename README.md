@@ -268,7 +268,14 @@ to Salesforce is blocked by cross-origin security until you allow the origin.
 Open the *Agent Governor* app → **Agent Governor Configurations** tab → **New**, then set:
 
 * **Governor Key** — a unique string (e.g. `pilot-v1`); you'll reference it in the wrapper.
-* **Linked Channel ID** — the MIAW `MessagingChannel` your agent uses.
+* **Linked Channel ID** — the 18-character record ID of the MIAW `MessagingChannel` your
+  agent uses (it typically starts with `0Mj`). To find it, open the channel under **Setup →
+  Messaging Settings** and look in the page URL for the `0Mj…` fragment (it may be
+  URL-encoded, e.g. `recordId=0Mj…` or `address=%2F0Mj…`) — copy the full 18 characters.
+  If you can't spot it there, run `SELECT Id, MasterLabel, DeveloperName FROM MessagingChannel`
+  in the Developer Console (or **Setup → Query Editor**) and copy the `Id` for your channel.
+  **Make sure it starts with `0Mj` (the messaging channel), not `0ej`** — the latter is the
+  Embedded Service **deployment** ID from the web snippet, which is easy to grab by mistake.
 * **The guardrails** — **Sampling Rate** (e.g. 5%), **Daily Limit** (e.g. 50), **Start/End
   Hour** with a **Time Zone**, and **Exclude Weekends** as needed.
 * **Is Active** — check this when you're ready to go live. This is the master on/off switch.

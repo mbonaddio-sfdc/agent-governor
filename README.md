@@ -287,9 +287,24 @@ Open the *Agent Governor* app → **Agent Governor Configurations** tab → **Ne
       in the Developer Console (or **Setup → Query Editor**) and copy the `Id` for your channel.
     * ⚠️ **Make sure it starts with `0Mj` (the messaging channel), not `0ej`** — the latter is
       the Embedded Service **deployment** ID from the web snippet, which is easy to grab by mistake.
-* **The guardrails** — **Sampling Rate** (e.g. 5%), **Daily Limit** (e.g. 50), **Start/End
-  Hour** with a **Time Zone**, and **Exclude Weekends** as needed.
-* **Is Active** — check this when you're ready to go live. This is the master on/off switch.
+* **The guardrails** — the throttles that shape *who* sees the agent and *how much*. All are
+  optional; leave one blank to switch that control off.
+    * **Sampling Rate** — the percentage of eligible visitors who see the agent (e.g. `5` for a
+      cautious pilot). **Blank means 100%** — everyone. Use this to dip a toe in before opening up.
+    * **Daily Limit** — a target cap on conversations per day (e.g. `50`). It's a **soft ceiling,
+      not a hard cutoff:** counts are tallied just after each session starts, so a burst can nudge
+      slightly over before the quota flips — size it as a budget with headroom. Blank means no cap.
+    * **Start Hour / End Hour** — the daily window traffic is allowed, as whole hours `0`–`23`
+      (e.g. `9` to `17`). **End must be later than Start**, and windows can't cross midnight
+      (no overnight ranges). Operating hours only apply when **both** are set; leave both blank
+      for "always open".
+    * **Time Zone** — the IANA zone (e.g. `Australia/Sydney`) the hours, weekend rule, and daily
+      reset are measured in. ⚠️ **Required whenever you set operating hours or Exclude Weekends** —
+      a schedule with no time zone is rejected by a validation rule, so don't skip it.
+    * **Exclude Weekends** — blocks Saturday and Sunday when checked. Needs a Time Zone set to
+      take effect.
+* **Is Active** — the master on/off switch. Check it when you're ready to go live; unchecking it
+  is how you turn the agent off manually (**not** Is Green — see the note below).
 
 > Leave the system-managed fields (**Is Green**, **Current Count**, **Reset Date**) alone —
 > the engine sets them automatically. In particular, **Is Green is not a manual kill switch**:

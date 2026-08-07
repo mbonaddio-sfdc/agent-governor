@@ -320,6 +320,15 @@ Open the *Agent Governor* app → **Agent Governor Configurations** tab → **Ne
 
 ### Step 5 — Add the wrapper to your website
 
+The **wrapper** is a small piece of JavaScript that sits between your website and your normal
+Agentforce/MIAW chat snippet. Instead of launching the agent the moment the page loads, it first
+asks the Governor API — using the **Governor Key** from Step 4 — whether the agent is clear to
+show right now. Only on a **GO** does it run your standard snippet and boot the agent; on a
+**STOP** (paused, over the daily limit, outside hours, sampled out, or if the API is unreachable)
+it quietly does nothing, so the visitor sees your site exactly as it was. This is what lets you
+throttle the rollout centrally from the configuration record without editing your website again —
+you change the record, not the code on the page.
+
 From the [/client/](/client/) folder, choose the variant that matches your scenario
 (greenfield, fallback-to-existing-bot, or high-volume). Set `GOVERNOR_SITE_BASE` to your
 Site's base URL (from Step 2) and `GOVERNOR_KEY` to the key from Step 4, paste your standard
